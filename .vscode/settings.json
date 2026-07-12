@@ -1,0 +1,12 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.jdt.ls.java.home": "C:\\Users\\paksh\\.jdks\\ms-21.0.7",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Users\\paksh\\.jdks\\ms-21.0.7",
+      "default": true
+    }
+  ]
+}

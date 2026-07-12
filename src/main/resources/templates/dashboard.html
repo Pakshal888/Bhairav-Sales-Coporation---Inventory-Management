@@ -1,0 +1,94 @@
+﻿
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Hardware Shop Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Bhairav Sales Corporation</h1>
+            <nav>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/bill/generate">Generate Bill</a>
+                <a href="/estimate/generate">Generate Estimate</a>
+                <a href="/bill/list">Bills</a>
+                <a href="/estimate/list">Estimates</a>
+                <a th:if="${role == 'ROLE_ADMIN'}" href="/admin/dashboard">Admin Panel</a>
+                <a href="/add">Add Product</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Product Categories</h2>
+        <div class="categories">
+            <div class="category-card" onclick="location.href='/category/Hardware'">
+                <h3>Hardware</h3>
+                <p>View Hardware Stock</p>
+            </div>
+            <div class="category-card" onclick="location.href='/category/Electric'">
+                <h3>Electric</h3>
+                <p>View Electric Stock</p>
+            </div>
+            <div class="category-card" onclick="location.href='/category/Plumbing'">
+                <h3>Plumbing</h3>
+                <p>View Plumbing Stock</p>
+            </div>
+            <div class="category-card" onclick="location.href='/category/Fancyware'">
+                <h3>Fancyware</h3>
+                <p>View Fancyware Stock</p>
+            </div>
+            <div class="category-card" onclick="location.href='/category/Sanitaryware'">
+                <h3>Sanitaryware</h3>
+                <p>View Sanitaryware Stock</p>
+            </div>
+        </div>
+
+        <h2>All Products</h2>
+        <table>
+            <tr>
+                <th>Brand</th>
+                <th>Size</th>
+                <th th:if="${role == 'ROLE_ADMIN'}">Purchase Rate</th>
+                <th>Stock Rate</th>
+                <th>Thickness</th>
+                <th>Stock</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th th:if="${role == 'ROLE_ADMIN'}">Action</th>
+            </tr>
+            <tr th:each="p : ${products}">
+                <td th:text="${p.brand}"></td>
+                <td th:text="${p.size}"></td>
+                <td th:if="${role == 'ROLE_ADMIN'}" th:text="${p.purchaseRate}"></td>
+                <td th:text="${p.stockRate}"></td>
+                <td th:text="${p.thickness}"></td>
+                <td th:text="${p.quantity}"></td>
+                <td th:text="${p.price}"></td>
+                <td th:text="${p.category}"></td>
+                <td th:if="${role == 'ROLE_ADMIN'}">
+                    <form th:action="@{/product/delete/{id}(id=${p.id})}" method="post" style="display:inline;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <input type="hidden" name="redirect" value="/dashboard" />
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <footer>
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+</body>
+</html>
+
+
+

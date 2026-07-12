@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Admin Panel - Bhairav Sales Corporation</h1>
+            <nav>
+                <a href="/dashboard">User Dashboard</a>
+                <a href="/add">Add Product</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Admin Dashboard - All Products with Purchase Rates</h2>
+        <table>
+            <tr>
+                <th>Brand</th>
+                <th>Size</th>
+                <th>Purchase Rate</th>
+                <th>Stock Rate</th>
+                <th>Thickness</th>
+                <th>Stock</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Action</th>
+            </tr>
+            <tr th:each="p : ${products}">
+                <td th:text="${p.brand}"></td>
+                <td th:text="${p.size}"></td>
+                <td th:text="'₹' + ${p.purchaseRate}"></td>
+                <td th:text="'₹' + ${p.stockRate}"></td>
+                <td th:text="${p.thickness}"></td>
+                <td th:text="${p.quantity}"></td>
+                <td th:text="'₹' + ${p.price}"></td>
+                <td th:text="${p.category}"></td>
+                <td>
+                    <form th:action="@{/product/delete/{id}(id=${p.id})}" method="post" style="display:inline;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <input type="hidden" name="redirect" value="/admin/dashboard" />
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <footer>
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+</body>
+</html>
+
+

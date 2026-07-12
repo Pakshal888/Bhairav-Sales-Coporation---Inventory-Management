@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Bills</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Bhairav Sales Corporation</h1>
+            <nav>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/bill/generate">New Bill</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>All Bills</h2>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Total Amount</th>
+                <th>Discount</th>
+                <th>Final Amount</th>
+                <th>Action</th>
+            </tr>
+            <tr th:each="b : ${bills}">
+                <td th:text="${b.id}"></td>
+                <td th:text="${b.customerName}"></td>
+                <td th:text="${#temporals.format(b.date, 'dd/MM/yyyy HH:mm')}"></td>
+                <td th:text="'₹' + ${b.totalAmount}"></td>
+                <td th:text="'₹' + ${b.discount}"></td>
+                <td th:text="'₹' + ${b.finalAmount}"></td>
+                <td>
+                    <form th:action="@{/bill/delete/{id}(id=${b.id})}" method="post" style="display:inline;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <footer>
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+</body>
+</html>
+
+
