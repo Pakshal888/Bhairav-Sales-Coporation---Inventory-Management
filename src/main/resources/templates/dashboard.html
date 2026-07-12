@@ -53,36 +53,38 @@
         </div>
 
         <h2>All Products</h2>
-        <table>
-            <tr>
-                <th>Brand</th>
-                <th>Size</th>
-                <th th:if="${role == 'ROLE_ADMIN'}">Purchase Rate</th>
-                <th>Stock Rate</th>
-                <th>Thickness</th>
-                <th>Stock</th>
-                <th>Price</th>
-                <th>Category</th>
-                <th th:if="${role == 'ROLE_ADMIN'}">Action</th>
-            </tr>
-            <tr th:each="p : ${products}">
-                <td th:text="${p.brand}"></td>
-                <td th:text="${p.size}"></td>
-                <td th:if="${role == 'ROLE_ADMIN'}" th:text="${p.purchaseRate}"></td>
-                <td th:text="${p.stockRate}"></td>
-                <td th:text="${p.thickness}"></td>
-                <td th:text="${p.quantity}"></td>
-                <td th:text="${p.price}"></td>
-                <td th:text="${p.category}"></td>
-                <td th:if="${role == 'ROLE_ADMIN'}">
-                    <form th:action="@{/product/delete/{id}(id=${p.id})}" method="post" style="display:inline;">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                        <input type="hidden" name="redirect" value="/dashboard" />
-                        <button type="submit" class="btn-delete">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        </table>
+        <div class="table-shell">
+            <table class="dashboard-table">
+                <tr>
+                    <th>Brand</th>
+                    <th>Size</th>
+                    <th th:if="${role == 'ROLE_ADMIN'}">Purchase Rate</th>
+                    <th>Stock Rate</th>
+                    <th>Thickness</th>
+                    <th>Stock</th>
+                    <th>Price</th>
+                    <th>Category</th>
+                    <th th:if="${role == 'ROLE_ADMIN'}">Action</th>
+                </tr>
+                <tr th:each="p : ${products}">
+                    <td th:text="${p.brand}"></td>
+                    <td th:text="${p.size}"></td>
+                    <td th:if="${role == 'ROLE_ADMIN'}" th:text="${p.purchaseRate}"></td>
+                    <td th:text="${p.stockRate}"></td>
+                    <td th:text="${p.thickness}"></td>
+                    <td th:text="${p.quantity}"></td>
+                    <td th:text="${p.price}"></td>
+                    <td th:text="${p.category}"></td>
+                    <td th:if="${role == 'ROLE_ADMIN'}">
+                        <form th:action="@{/product/delete/{id}(id=${p.id})}" method="post" style="display:inline;">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="redirect" value="/dashboard" />
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
 
     <footer>

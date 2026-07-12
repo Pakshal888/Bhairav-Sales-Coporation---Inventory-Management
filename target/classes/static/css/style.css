@@ -344,10 +344,26 @@ table {
     border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
+.table-shell {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 16px;
+    margin: 16px 0 8px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    padding: 6px;
+}
+
+.dashboard-table {
+    margin: 0;
+    min-width: 760px;
+}
+
 th, td {
     padding: 14px 16px;
     text-align: left;
     border-bottom: 1px solid #eef2f7;
+    white-space: nowrap;
 }
 
 th {
@@ -950,6 +966,14 @@ footer {
 
     table {
         font-size: 14px;
+    }
+
+    .table-shell {
+        padding: 4px;
+    }
+
+    .dashboard-table {
+        min-width: 720px;
     }
 
     th, td {
