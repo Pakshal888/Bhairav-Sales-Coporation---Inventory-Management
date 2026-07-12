@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Estimate</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Bhairav Sales Corporation</h1>
+            <nav>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/estimate/generate">New Estimate</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container bill-container">
+        <div class="company-info">
+            <h3>Bhairav Sales Corporation</h3>
+            <p><strong>Mobile:</strong> 9921422964</p>
+            <p><strong>Address:</strong> Next to Ram Mandir, Bazar Peth Revdanda</p>
+        </div>
+        <h2>Estimate</h2>
+        <div class="bill-header">
+            <div>
+                <p><strong>Customer:</strong> <span th:text="${estimate.customerName}"></span></p>
+                <p><strong>Category:</strong> <span th:text="${estimate.category}"></span></p>
+            </div>
+            <div>
+                <p><strong>Date:</strong> <span th:text="${#temporals.format(estimate.date, 'dd/MM/yyyy HH:mm')}"></span></p>
+            </div>
+        </div>
+
+        <table class="bill-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Company</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item,iterStat : ${estimate.items}">
+                    <td th:text="${item}"></td>
+                    <td th:text="${estimate.companies[iterStat.index]}"></td>
+                    <td th:text="'₹' + ${estimate.prices[iterStat.index]}"></td>
+                    <td th:text="${estimate.quantities[iterStat.index]}"></td>
+                    <td th:text="'₹' + ${estimate.prices[iterStat.index] * estimate.quantities[iterStat.index]}"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="bill-summary">
+            <p><strong>Total Amount:</strong> ₹<span th:text="${estimate.totalAmount}"></span></p>
+            <p><strong>Discount:</strong> ₹<span th:text="${estimate.discount}"></span></p>
+            <p><strong>Final Amount:</strong> ₹<span th:text="${estimate.finalAmount}"></span></p>
+        </div>
+
+        <div class="action-buttons">
+            <button onclick="window.print()" class="btn-print">Print Estimate</button>
+            <a href="/estimate/generate" class="btn-secondary">Back to Estimate</a>
+        </div>
+    </div>
+
+    <footer class="screen-footer">
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+    <footer class="print-footer">
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+</body>
+</html>
+
+

@@ -1,0 +1,425 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="'Hardware Shop - ' + ${category}">Category</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Bhairav Sales Corporation</h1>
+            <nav>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/bill/generate">Generate Bill</a>
+                <a href="/estimate/generate">Generate Estimate</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" th:if="${!stockManagerEnabled}">
+        <h2 th:text="${category} + ' Products'"></h2>
+        <table>
+            <tr>
+                <th>Brand</th>
+                <th>Size</th>
+                <th th:if="${role == 'ROLE_ADMIN'}">Purchase Rate</th>
+                <th>Stock Rate</th>
+                <th>Thickness</th>
+                <th>Stock</th>
+                <th>Price</th>
+                <th th:if="${role == 'ROLE_ADMIN'}">Action</th>
+            </tr>
+            <tr th:each="p : ${products}">
+                <td th:text="${p.brand}"></td>
+                <td th:text="${p.size}"></td>
+                <td th:if="${role == 'ROLE_ADMIN'}" th:text="${p.purchaseRate}"></td>
+                <td th:text="${p.stockRate}"></td>
+                <td th:text="${p.thickness}"></td>
+                <td th:text="${p.quantity}"></td>
+                <td th:text="${p.price}"></td>
+                <td th:if="${role == 'ROLE_ADMIN'}">
+                    <form th:action="@{/product/delete/{id}(id=${p.id})}" method="post" style="display:inline;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <input type="hidden" name="redirect" th:value="@{'/category/' + ${category}}" />
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div th:if="${stockManagerEnabled}" class="container hardware-stock-manager stock-shell">
+        <h2>Hardware Stock Management</h2>
+        <form id="stockForm" th:action="@{/hardware/stock/update}" method="post" class="stock-form-card">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <div class="form-group">
+                <label>Stock Type</label>
+                <select id="stockTypeSelect" name="stockType">
+                    <option value="">Select Stock Type</option>
+                    <option th:each="type : ${stockTypes}" th:value="${type}" th:text="${type}"></option>
+                </select>
+            </div>
+
+            <div id="modeSelection" class="form-group hidden">
+                <label>Mode</label>
+                <select id="modeSelect">
+                    <option value="">Choose Mode</option>
+                    <option value="view">View Stock</option>
+                    <option value="update">Update Stock</option>
+                </select>
+            </div>
+
+            <div id="companySelection" class="form-group hidden">
+                <label>Company Name</label>
+                <select id="companySelect" name="companyName">
+                    <option value="">Select Company</option>
+                    <option th:each="company : ${stockCompanies}" th:value="${company}" th:text="${company}"></option>
+                </select>
+            </div>
+
+            <div id="stockMessage" class="toast hidden" role="status" aria-live="polite"></div>
+
+            <div id="updateContainer" class="hidden view-stock-container">
+                <div class="stock-view-header">
+                    <div><strong>Stock Type:</strong> <span id="updateStockType">-</span></div>
+                    <div><strong>Company:</strong> <span id="updateCompanyName">-</span></div>
+                </div>
+                <table class="compact-stock-table">
+                    <thead>
+                        <tr>
+                            <th>Thickness \ Size</th>
+                            <th>8*4</th>
+                            <th>8*3</th>
+                            <th>7*4</th>
+                            <th>7*3</th>
+                            <th>6*4</th>
+                            <th>6*3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="updateStockBody"></tbody>
+                </table>
+                <div class="action-buttons center">
+                    <button type="submit" class="btn-submit">Update Stocks</button>
+                </div>
+            </div>
+
+            <div id="viewContainer" class="hidden view-stock-container">
+                <div class="stock-view-header">
+                    <div><strong>Stock Type:</strong> <span id="viewStockType">-</span></div>
+                    <div><strong>Company:</strong> <span id="viewCompanyName">-</span></div>
+                </div>
+                <table class="compact-stock-table">
+                    <thead>
+                        <tr>
+                            <th>Thickness \ Size</th>
+                            <th>8*4</th>
+                            <th>8*3</th>
+                            <th>7*4</th>
+                            <th>7*3</th>
+                            <th>6*4</th>
+                            <th>6*3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewStockBody"></tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script th:inline="javascript">
+        const stockCompanies = /*[[${stockCompanies}]]*/ [];
+        let savedStockItems = /*[[${stockItems}]]*/ [];
+        const stockThicknesses = ['19mm', '15mm', '12mm', '9mm', '6mm'];
+        const stockSizes = ['8*4', '8*3', '7*4', '7*3', '6*4', '6*3'];
+
+        function getSavedStock(stockType, company, size) {
+            return savedStockItems.find(function(item) {
+                return item.stockType === stockType && item.companyName === company && item.size === size;
+            });
+        }
+
+        function showStockMessage(message, type) {
+            const toast = $('#stockMessage');
+            toast.removeClass('hidden success error').addClass(type || 'success');
+            toast.html('<span class="toast-icon">' + (type === 'error' ? '⚠' : '✓') + '</span><span class="toast-text">' + message + '</span>');
+            toast.removeClass('toast-hidden');
+            clearTimeout(showStockMessage.timeoutId);
+            showStockMessage.timeoutId = setTimeout(function() {
+                toast.addClass('hidden');
+            }, 2600);
+        }
+
+        function updateSavedStocks(updatedStocks) {
+            updatedStocks.forEach(function(stock) {
+                const existingIndex = savedStockItems.findIndex(function(item) {
+                    return item.stockType === stock.stockType && item.companyName === stock.companyName && item.size === stock.size;
+                });
+                if (existingIndex !== -1) {
+                    savedStockItems[existingIndex].id = stock.id;
+                    savedStockItems[existingIndex].stock = stock.stock;
+                } else {
+                    savedStockItems.push(stock);
+                }
+            });
+        }
+
+        function renderUpdateRows(company, stockType, stocks) {
+            const stockMap = {};
+            const stockList = Array.isArray(stocks) ? stocks : [];
+            if (stockList.length) {
+                savedStockItems = stockList;
+            }
+            stockThicknesses.forEach(function(thickness) {
+                stockMap[thickness] = {};
+                stockSizes.forEach(function(sheetSize) {
+                    const size = thickness + ' - ' + sheetSize;
+                    const saved = stockList.find(function(item) {
+                        return item.size === size;
+                    });
+                    stockMap[thickness][size] = {
+                        id: saved ? saved.id : '',
+                        stock: saved ? saved.stock : 0
+                    };
+                });
+            });
+
+            $('#updateStockType').text(stockType);
+            $('#updateCompanyName').text(company);
+            $('#updateStockBody').empty();
+            stockThicknesses.forEach(function(thickness) {
+                $('#updateStockBody').append(createUpdateStockRow(thickness, company, stockMap));
+            });
+
+            $('#viewContainer').addClass('hidden');
+            $('#updateContainer').removeClass('hidden');
+        }
+
+        function renderViewStocks(company, stockType, stocks) {
+            $('#viewStockType').text(stockType);
+            $('#viewCompanyName').text(company);
+            $('#viewStockBody').empty();
+
+            stockThicknesses.forEach(function(thickness) {
+                const row = $('<tr></tr>');
+                row.append(`<td>${thickness}</td>`);
+                stockSizes.forEach(function(sheetSize) {
+                    const size = thickness + ' - ' + sheetSize;
+                    const saved = stocks.find(function(item) {
+                        return item.size === size;
+                    });
+                    row.append(`<td class="stock-value">${saved ? saved.stock : 0}</td>`);
+                });
+                $('#viewStockBody').append(row);
+            });
+            $('#viewContainer').removeClass('hidden');
+        }
+
+        function fetchStockData(company, stockType, mode) {
+            if (!company || !stockType) {
+                return;
+            }
+            $.ajax({
+                url: '/hardware/stock/view',
+                method: 'GET',
+                data: {
+                    stockType: stockType,
+                    companyName: company
+                },
+                success: function(response) {
+                    if (mode === 'view') {
+                        renderViewStocks(company, stockType, response);
+                    } else {
+                        renderUpdateRows(company, stockType, response);
+                    }
+                },
+                error: function() {
+                    showStockMessage('Unable to load stock details. Please try again.');
+                }
+            });
+        }
+
+        function submitStockUpdate() {
+            const stockType = $('#stockTypeSelect').val();
+            const company = $('#companySelect').val();
+            const updatedStockIds = [];
+            const updatedSizes = [];
+            const updatedStocks = [];
+
+            $('#updateStockBody tr').each(function() {
+                $(this).find('td').each(function(index) {
+                    if (index === 0) {
+                        return;
+                    }
+                    updatedStockIds.push($(this).find('input[name="stockIds"]').val() || '');
+                    updatedSizes.push($(this).find('input[name="sizes"]').val());
+                    updatedStocks.push($(this).find('input[name="stocks"]').val());
+                });
+            });
+
+            const data = {
+                _csrf: $('input[name="_csrf"]').val(),
+                stockType: stockType,
+                companyNames: Array(updatedSizes.length).fill(company),
+                sizes: updatedSizes,
+                stocks: updatedStocks
+            };
+
+            $.ajax({
+                url: '/hardware/stock/update/json',
+                method: 'POST',
+                dataType: 'json',
+                traditional: true,
+                data: data,
+                success: function(response) {
+                    updateSavedStocks(response);
+                    renderUpdateRows(company, stockType, response);
+                    showStockMessage('Stocks updated successfully. Latest values are shown below.', 'success');
+                },
+                error: function(xhr) {
+                    console.error('Stock update failed:', xhr.status, xhr.responseText);
+                    showStockMessage('Unable to update stock. Please try again.', 'error');
+                }
+            });
+        }
+
+        function submitSingleRowUpdate(row) {
+            const data = {
+                _csrf: $('input[name="_csrf"]').val(),
+                stockType: $('#stockTypeSelect').val(),
+                companyName: row.find('input[name="companyNames"]').val(),
+                size: row.find('input[name="sizes"]').val(),
+                stock: row.find('input[name="stocks"]').val(),
+                stockId: row.find('input[name="stockIds"]').val()
+            };
+
+            $.ajax({
+                url: '/hardware/stock/update/row',
+                method: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response) {
+                        row.attr('data-id', response.id);
+                        row.find('input[name="stockIds"]').val(response.id);
+                        row.find('input[name="stocks"]').val(response.stock);
+                        updateSavedStocks([response]);
+                        const stockType = $('#stockTypeSelect').val();
+                        const company = row.find('input[name="companyNames"]').val();
+                        fetchStockData(company, stockType, 'update');
+                        showStockMessage('Stock row updated successfully.', 'success');
+                    }
+                },
+                error: function() {
+                    showStockMessage('Unable to update stock. Please try again.', 'error');
+                }
+            });
+        }
+
+        function createUpdateStockRow(thickness, companyName, stockMap) {
+            const row = $('<tr></tr>');
+            row.append(`<td>${thickness}</td>`);
+            stockSizes.forEach(function(sheetSize) {
+                const cellSize = thickness + ' - ' + sheetSize;
+                const saved = stockMap[thickness][cellSize] || { id: '', stock: 0 };
+                row.append(`<td>
+                    <input type="hidden" name="stockIds" value="${saved.id || ''}">
+                    <input type="hidden" name="companyNames" value="${companyName}">
+                    <input type="hidden" name="sizes" value="${cellSize}">
+                    <input type="number" name="stocks" class="stock-input" min="0" value="${saved.stock}">
+                </td>`);
+            });
+            return row;
+        }
+
+        function resetStockSection() {
+            $('#modeSelection').addClass('hidden');
+            $('#companySelection').addClass('hidden');
+            $('#updateContainer').addClass('hidden');
+            $('#viewContainer').addClass('hidden');
+            $('#modeSelect').val('');
+            $('#companySelect').val('');
+            $('#updateStockBody').empty();
+            $('#viewStockBody').empty();
+        }
+
+        function setModeDisplay(mode) {
+            if (mode === 'view') {
+                $('#updateContainer').addClass('hidden');
+                $('#viewContainer').removeClass('hidden');
+            } else if (mode === 'update') {
+                $('#viewContainer').addClass('hidden');
+                $('#updateContainer').removeClass('hidden');
+            } else {
+                $('#viewContainer').addClass('hidden');
+                $('#updateContainer').addClass('hidden');
+            }
+        }
+
+        $(document).ready(function() {
+            $('#stockTypeSelect').change(function() {
+                const type = $(this).val();
+                if (type) {
+                    $('#modeSelection').removeClass('hidden');
+                } else {
+                    resetStockSection();
+                }
+            });
+
+            $('#modeSelect').change(function() {
+                const mode = $(this).val();
+                $('#companySelection').toggleClass('hidden', !mode);
+                setModeDisplay('');
+                $('#stockRows').empty();
+                $('#viewStockBody').empty();
+                if (mode && $('#companySelect').val()) {
+                    const company = $('#companySelect').val();
+                    const stockType = $('#stockTypeSelect').val();
+                    if (mode === 'view') {
+                        fetchStockData(company, stockType, 'view');
+                    } else {
+                        fetchStockData(company, stockType, 'update');
+                    }
+                }
+            });
+
+            $('#companySelect').change(function() {
+                const company = $(this).val();
+                const mode = $('#modeSelect').val();
+                const stockType = $('#stockTypeSelect').val();
+                if (company && mode) {
+                    if (mode === 'view') {
+                        fetchStockData(company, stockType, 'view');
+                    } else {
+                        fetchStockData(company, stockType, 'update');
+                    }
+                } else {
+                    setModeDisplay('');
+                }
+            });
+
+            $('#stockForm').submit(function(e) {
+                if ($('#modeSelect').val() === 'update') {
+                    e.preventDefault();
+                    submitStockUpdate();
+                }
+            });
+
+            $(document).on('click', '.btn-update-row', function() {
+                const row = $(this).closest('tr');
+                submitSingleRowUpdate(row);
+            });
+        });
+    </script>
+
+    <footer>
+        <p>© 2026 Designed & Developed by Pakshal Jain #Software Engineer</p>
+    </footer>
+</body>
+</html>
+
+
