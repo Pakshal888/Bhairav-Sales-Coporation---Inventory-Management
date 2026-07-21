@@ -6,9 +6,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.shop.entity.Estimate;
+import com.shop.entity.PlywoodStock;
 import com.shop.service.EstimateService;
+import com.shop.service.PlywoodStockService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -18,9 +21,13 @@ public class EstimateController {
     @Autowired
     private EstimateService estimateService;
 
+    @Autowired
+    private PlywoodStockService plywoodStockService;
+
     @GetMapping("/generate")
     public String generateForm(Model model) {
         model.addAttribute("estimate", new Estimate());
+        model.addAttribute("plyThicknesses", getPlyThicknesses());
         return "generate-estimate";
     }
 
@@ -88,6 +95,25 @@ public class EstimateController {
     public String list(Model model) {
         model.addAttribute("estimates", estimateService.getAll());
         return "estimate-list";
+    }
+
+    private List<String> getPlyThicknesses() {
+        List<String> thicknesses = new ArrayList<>();
+        if (plywoodStockService != null) {
+            for (PlywoodStock stock : plywoodStockService.getAll()) {
+                if (stock.getSize() != null && stock.getSize().contains(" - ")) {
+                    String thickness = stock.getSize().split(" - ", 2)[0].trim();
+                    if (!thickness.isBlank() && !thicknesses.contains(thickness)) {
+                        thicknesses.add(thickness);
+                    }
+                }
+            }
+        }
+        if (thicknesses.isEmpty()) {
+            thicknesses.addAll(List.of("12mm", "15mm", "19mm"));
+        }
+        thicknesses.sort(Comparator.naturalOrder());
+        return thicknesses;
     }
 
     @PostMapping("/delete/{id}")

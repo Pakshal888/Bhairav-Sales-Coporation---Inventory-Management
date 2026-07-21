@@ -92,15 +92,7 @@
                 </div>
                 <table class="compact-stock-table">
                     <thead>
-                        <tr>
-                            <th>Thickness \ Size</th>
-                            <th>8*4</th>
-                            <th>8*3</th>
-                            <th>7*4</th>
-                            <th>7*3</th>
-                            <th>6*4</th>
-                            <th>6*3</th>
-                        </tr>
+                        <tr id="updateStockHeaderRow"></tr>
                     </thead>
                     <tbody id="updateStockBody"></tbody>
                 </table>
@@ -116,15 +108,7 @@
                 </div>
                 <table class="compact-stock-table">
                     <thead>
-                        <tr>
-                            <th>Thickness \ Size</th>
-                            <th>8*4</th>
-                            <th>8*3</th>
-                            <th>7*4</th>
-                            <th>7*3</th>
-                            <th>6*4</th>
-                            <th>6*3</th>
-                        </tr>
+                        <tr id="viewStockHeaderRow"></tr>
                     </thead>
                     <tbody id="viewStockBody"></tbody>
                 </table>
@@ -138,6 +122,23 @@
         let savedStockItems = /*[[${stockItems}]]*/ [];
         const stockThicknesses = ['19mm', '15mm', '12mm', '9mm', '6mm'];
         const stockSizes = ['8*4', '8*3', '7*4', '7*3', '6*4', '6*3'];
+
+        function getStockDisplayConfig(stockType, company) {
+            if (stockType === 'Plywood' && company === 'Centring RedPly') {
+                return { thicknesses: ['12mm'], sizes: ['8*4'] };
+            }
+            return { thicknesses: stockThicknesses, sizes: stockSizes };
+        }
+
+        function renderStockHeaders(containerId, stockType, company) {
+            const config = getStockDisplayConfig(stockType, company);
+            const headerRow = $('#' + containerId);
+            headerRow.empty();
+            headerRow.append('<th>Thickness \ Size</th>');
+            config.sizes.forEach(function(sheetSize) {
+                headerRow.append(`<th>${sheetSize}</th>`);
+            });
+        }
 
         function getSavedStock(stockType, company, size) {
             return savedStockItems.find(function(item) {
@@ -173,12 +174,13 @@
         function renderUpdateRows(company, stockType, stocks) {
             const stockMap = {};
             const stockList = Array.isArray(stocks) ? stocks : [];
+            const config = getStockDisplayConfig(stockType, company);
             if (stockList.length) {
                 savedStockItems = stockList;
             }
-            stockThicknesses.forEach(function(thickness) {
+            config.thicknesses.forEach(function(thickness) {
                 stockMap[thickness] = {};
-                stockSizes.forEach(function(sheetSize) {
+                config.sizes.forEach(function(sheetSize) {
                     const size = thickness + ' - ' + sheetSize;
                     const saved = stockList.find(function(item) {
                         return item.size === size;
@@ -190,11 +192,12 @@
                 });
             });
 
+            renderStockHeaders('updateStockHeaderRow', stockType, company);
             $('#updateStockType').text(stockType);
             $('#updateCompanyName').text(company);
             $('#updateStockBody').empty();
-            stockThicknesses.forEach(function(thickness) {
-                $('#updateStockBody').append(createUpdateStockRow(thickness, company, stockMap));
+            config.thicknesses.forEach(function(thickness) {
+                $('#updateStockBody').append(createUpdateStockRow(thickness, company, stockMap, config.sizes));
             });
 
             $('#viewContainer').addClass('hidden');
@@ -202,14 +205,16 @@
         }
 
         function renderViewStocks(company, stockType, stocks) {
+            const config = getStockDisplayConfig(stockType, company);
+            renderStockHeaders('viewStockHeaderRow', stockType, company);
             $('#viewStockType').text(stockType);
             $('#viewCompanyName').text(company);
             $('#viewStockBody').empty();
 
-            stockThicknesses.forEach(function(thickness) {
+            config.thicknesses.forEach(function(thickness) {
                 const row = $('<tr></tr>');
                 row.append(`<td>${thickness}</td>`);
-                stockSizes.forEach(function(sheetSize) {
+                config.sizes.forEach(function(sheetSize) {
                     const size = thickness + ' - ' + sheetSize;
                     const saved = stocks.find(function(item) {
                         return item.size === size;
@@ -321,10 +326,10 @@
             });
         }
 
-        function createUpdateStockRow(thickness, companyName, stockMap) {
+        function createUpdateStockRow(thickness, companyName, stockMap, sizes) {
             const row = $('<tr></tr>');
             row.append(`<td>${thickness}</td>`);
-            stockSizes.forEach(function(sheetSize) {
+            sizes.forEach(function(sheetSize) {
                 const cellSize = thickness + ' - ' + sheetSize;
                 const saved = stockMap[thickness][cellSize] || { id: '', stock: 0 };
                 row.append(`<td>

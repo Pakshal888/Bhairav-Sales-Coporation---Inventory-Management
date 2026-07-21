@@ -44,7 +44,15 @@ public class ProductController {
         if ("Hardware".equalsIgnoreCase(category)) {
             model.addAttribute("stockManagerEnabled", true);
             model.addAttribute("stockTypes", List.of("Plywood", "Handles", "Laminates", "Accessories"));
-            model.addAttribute("stockCompanies", List.of("Bluebird", "Century", "Duster"));
+            model.addAttribute("stockCompanies", List.of(
+                    "Bluebird/Timberland Club Prime",
+                    "Galaxy Royal",
+                    "TataGold",
+                    "Modi",
+                    "FlushDoor(Waterproof)",
+                    "FlushDoor(Local)",
+                    "Duster/Timberland Max",
+                    "Centring RedPly"));
             model.addAttribute("stockItems", plywoodStockService.getAll());
         } else {
             model.addAttribute("stockManagerEnabled", false);

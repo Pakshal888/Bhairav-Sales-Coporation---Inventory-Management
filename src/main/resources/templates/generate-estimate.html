@@ -35,6 +35,9 @@
                 <select id="categorySelect" name="category" required>
                     <option value="">Select Business Category</option>
                     <option value="Electric">Electric</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="SanitaryWare">SanitaryWare</option>
+                    <option value="Plumbing">Plumbing</option>
                 </select>
             </div>
 
@@ -44,15 +47,34 @@
                         <tr>
                             <th>Item</th>
                             <th>Company</th>
-                            <th>Price</th>
+                            <th>MM</th>
+                            <th>Size</th>
                             <th>Quantity</th>
+                            <th>Sq Ft</th>
+                            <th>Rate</th>
                             <th>Amount</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="itemsBody"></tbody>
                 </table>
-                <button type="button" id="addItemRow" class="btn-add">+ Add Custom Item</button>
+
+                <div id="hardwareControls" class="inline-controls hidden">
+                    <label>Add Hardware Item</label>
+                    <select id="hardwareItemSelect">
+                        <option value="ply">Ply</option>
+                        <option value="liners">Liners (White/OffWhite)</option>
+                        <option value="colour-laminate">Colour Laminate</option>
+                        <option value="fevicol">Fevicol</option>
+                        <option value="heatex">Heatex</option>
+                        <option value="hinges">Hinges</option>
+                        <option value="magnet">Magnet</option>
+                        <option value="handles">Handles</option>
+                        <option value="screws">Screws</option>
+                    </select>
+                    <button type="button" id="addHardwareItemRow" class="btn-add">+ Add Hardware Item</button>
+                    <button type="button" id="addItemRow" class="btn-add">+ Add Custom Item</button>
+                </div>
             </div>
 
             <div class="summary-grid">
@@ -74,7 +96,7 @@
         </form>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         const electricItems = [
             '6A Switch', '6A Socket', '16A Switch', '16A Socket', '6A 2way Switch',
             '16A 2way Switch', 'Indicator', 'Blank Plate', 'Regulator 1M', 'Regulator 2M',
@@ -85,41 +107,216 @@
             '10A MCB', '6A MCB'
         ];
 
-        const companies = ['Alemac', 'GM', 'Roma', 'Skava', 'Hifi', 'Other', 'N/A'];
+        const electricCompanies = ['Alemac', 'GM', 'Roma', 'Skava', 'Hifi', 'Other', 'N/A'];
+        const hardwareCompanies = [
+            'Bluebird/Timberland Club Prime',
+            'Galaxy Royal',
+            'TataGold',
+            'Modi',
+            'FlushDoor(Waterproof)',
+            'FlushDoor(Local)',
+            'Duster/Timberland Max',
+            'Centring RedPly'
+        ];
+        const plyStockSizes = ['8*4', '8*3', '7*4', '7*3', '6*4', '6*3'];
+        const availablePlyThicknesses = /*[[${plyThicknesses}]]*/ ['12mm', '15mm', '19mm'];
+        const hardwareItemOptions = [
+            { value: 'ply', label: 'Ply', sizeType: 'select', sizeOptions: plyStockSizes },
+            { value: 'liners', label: 'Liners (White/OffWhite)', sizeType: 'fixed', sizeOptions: ['8*4'] },
+            { value: 'colour-laminate', label: 'Colour Laminate', sizeType: 'fixed', sizeOptions: ['8*4'] },
+            { value: 'fevicol', label: 'Fevicol', sizeType: 'select', sizeOptions: ['100gm', '200gm', '400gm', '800gm'] },
+            { value: 'heatex', label: 'Heatex', sizeType: 'select', sizeOptions: ['100gm', '200gm', '400gm', '800gm'] },
+            { value: 'hinges', label: 'Hinges', sizeType: 'manual' },
+            { value: 'magnet', label: 'Magnet', sizeType: 'manual' },
+            { value: 'handles', label: 'Handles', sizeType: 'select', sizeOptions: ['2inch', '2.5inch', '3inch'] },
+            { value: 'screws', label: 'Screws', sizeType: 'manual' }
+        ];
+        const hardwareCompanyConfigs = {
+            ply: { mode: 'select', options: hardwareCompanies },
+            liners: { mode: 'fixed', value: 'NA' },
+            'colour-laminate': { mode: 'fixed', value: 'NA' },
+            fevicol: { mode: 'fixed', value: 'Pidilite' },
+            heatex: { mode: 'fixed', value: 'Pidilite' },
+            hinges: { mode: 'fixed', value: 'NA' },
+            magnet: { mode: 'fixed', value: 'Tilak' },
+            handles: { mode: 'select', options: ['Asees', 'Godrej'] },
+            screws: { mode: 'fixed', value: 'NA' }
+        };
+        const draftStorageKey = 'hardware-estimate-draft';
+
+        function buildCompanyOptions(companyList) {
+            return companyList.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
 
         function createItemRow(name) {
-            const row = $('<tr></tr>');
-            const companyOptions = companies.map(c => `<option value="${c}">${c}</option>`).join('');
+            const row = $('<tr class="estimate-row"></tr>');
+            const companyOptions = buildCompanyOptions(electricCompanies);
 
-            row.append(`<td><span>${name}</span><input type="hidden" name="itemNames" value="${name}"></td>`);
-            row.append(`<td><select name="companies">${companyOptions}</select></td>`);
-            row.append(`<td><input type="number" name="priceStrings" class="item-price" min="0" step="0.01" value="0"></td>`);
+            row.append(`<td><span>${name}</span><input type="hidden" name="itemNames" class="item-name" value="${name}"></td>`);
+            row.append(`<td><select name="companies" class="item-company">${companyOptions}</select></td>`);
+            row.append(`<td><input type="text" class="item-mm" value="-" readonly></td>`);
+            row.append(`<td><input type="text" class="item-size" value="-" readonly></td>`);
             row.append(`<td><input type="number" name="quantityStrings" class="item-quantity" min="0" step="1" value="0"></td>`);
+            row.append(`<td class="item-sqft">-</td>`);
+            row.append(`<td><input type="number" name="priceStrings" class="item-price" min="0" step="0.01" value="0"></td>`);
             row.append(`<td class="item-amount">₹0.00</td>`);
             row.append(`<td><button type="button" class="btn-delete">Delete</button></td>`);
             return row;
         }
 
         function createCustomItemRow(name = '') {
-            const row = $('<tr></tr>');
-            const companyOptions = companies.map(c => `<option value="${c}">${c}</option>`).join('');
+            const row = $('<tr class="estimate-row"></tr>');
+            const companyOptions = buildCompanyOptions(electricCompanies);
 
             row.append(`<td><input type="text" name="itemNames" class="item-name" placeholder="Enter item name" value="${name}"></td>`);
-            row.append(`<td><select name="companies">${companyOptions}</select></td>`);
-            row.append(`<td><input type="number" name="priceStrings" class="item-price" min="0" step="0.01" value="0"></td>`);
+            row.append(`<td><select name="companies" class="item-company">${companyOptions}</select></td>`);
+            row.append(`<td><input type="text" class="item-mm" value="-" readonly></td>`);
+            row.append(`<td><input type="text" class="item-size" value="-" readonly></td>`);
             row.append(`<td><input type="number" name="quantityStrings" class="item-quantity" min="0" step="1" value="0"></td>`);
+            row.append(`<td class="item-sqft">-</td>`);
+            row.append(`<td><input type="number" name="priceStrings" class="item-price" min="0" step="0.01" value="0"></td>`);
             row.append(`<td class="item-amount">₹0.00</td>`);
             row.append(`<td><button type="button" class="btn-delete">Delete</button></td>`);
             return row;
         }
 
+        function createHardwareItemRow(itemKey) {
+            const config = hardwareItemOptions.find(option => option.value === itemKey) || hardwareItemOptions[0];
+            const row = $('<tr class="estimate-row hardware-row"></tr>');
+            const companyConfig = hardwareCompanyConfigs[itemKey] || hardwareCompanyConfigs.ply;
+            const companyOptions = buildCompanyOptions(companyConfig.mode === 'select' ? companyConfig.options : []);
+            const sizeOptions = (config.sizeOptions || []).map(size => `<option value="${size}">${size}</option>`).join('');
+            let sizeField = '<input type="text" class="item-size" value="-" readonly>';
+            let mmField = '<input type="text" class="item-mm" value="-" readonly>';
+            let companyField = '<input type="text" class="item-company" value="NA" readonly>';
+
+            if (itemKey === 'ply') {
+                mmField = `<select class="item-mm">${availablePlyThicknesses.map(mm => `<option value="${mm}">${mm}</option>`).join('')}</select>`;
+                sizeField = `<select class="item-size">${plyStockSizes.map(size => `<option value="${size}">${size}</option>`).join('')}</select>`;
+                companyField = `<select name="companies" class="item-company">${companyOptions}</select>`;
+            } else if (config.sizeType === 'select') {
+                sizeField = `<select class="item-size">${sizeOptions}</select>`;
+                if (companyConfig.mode === 'select') {
+                    companyField = `<select name="companies" class="item-company">${companyOptions}</select>`;
+                } else {
+                    companyField = `<input type="text" name="companies" class="item-company" value="${companyConfig.value}" readonly>`;
+                }
+            } else if (config.sizeType === 'manual') {
+                sizeField = '<input type="text" class="item-size" placeholder="Enter size" value="">';
+                if (companyConfig.mode === 'select') {
+                    companyField = `<select name="companies" class="item-company">${companyOptions}</select>`;
+                } else {
+                    companyField = `<input type="text" name="companies" class="item-company" value="${companyConfig.value}" readonly>`;
+                }
+            } else {
+                sizeField = `<select class="item-size"><option value="${(config.sizeOptions || ['8*4'])[0]}">${(config.sizeOptions || ['8*4'])[0]}</option></select>`;
+                if (companyConfig.mode === 'select') {
+                    companyField = `<select name="companies" class="item-company">${companyOptions}</select>`;
+                } else {
+                    companyField = `<input type="text" name="companies" class="item-company" value="${companyConfig.value}" readonly>`;
+                }
+            }
+
+            row.append(`<td><span class="item-display">${config.label}</span><input type="hidden" name="itemNames" class="item-name" value="${config.label}"></td>`);
+            row.append(`<td class="company-cell">${companyField}</td>`);
+            row.append(`<td class="mm-cell">${mmField}</td>`);
+            row.append(`<td class="size-cell">${sizeField}</td>`);
+            row.append(`<td><input type="number" name="quantityStrings" class="item-quantity" min="0" step="1" value="1"></td>`);
+            row.append(`<td class="item-sqft">NA</td>`);
+            row.append(`<td><input type="number" name="priceStrings" class="item-price" min="0" step="0.01" value="0"></td>`);
+            row.append(`<td class="item-amount">₹0.00</td>`);
+            row.append(`<td><button type="button" class="btn-delete">Delete</button></td>`);
+            row.attr('data-item-key', itemKey);
+            return row;
+        }
+
+        function parseSheetSize(sizeValue) {
+            if (!sizeValue || !sizeValue.includes('*')) {
+                return null;
+            }
+            const [widthText, heightText] = sizeValue.split('*');
+            const width = parseFloat(widthText);
+            const height = parseFloat(heightText);
+            return Number.isFinite(width) && Number.isFinite(height) ? { width, height } : null;
+        }
+
+        function getSqFeet(sizeValue, quantity) {
+            const parsed = parseSheetSize(sizeValue);
+            if (!parsed) {
+                return null;
+            }
+            return parsed.width * parsed.height * (quantity || 0);
+        }
+
+        function buildHardwareLabel(row) {
+            const key = row.attr('data-item-key');
+            const config = hardwareItemOptions.find(option => option.value === key) || hardwareItemOptions[0];
+            const company = row.find('.item-company').val() || 'N/A';
+            const mm = row.find('.item-mm').val() || '';
+            const size = row.find('.item-size').val() || '';
+            const qty = row.find('.item-quantity').val() || '0';
+            const rate = row.find('.item-price').val() || '0';
+            const sqft = row.find('.item-sqft').text() || '';
+            let label = config.label;
+            label += ` | Company: ${company}`;
+            if (mm) {
+                label += ` | MM: ${mm}`;
+            }
+            if (size) {
+                label += ` | Size: ${size}`;
+            }
+            if (qty && qty !== '0') {
+                label += ` | Qty: ${qty}`;
+            }
+            if (sqft && sqft !== 'NA') {
+                label += ` | SqFt: ${sqft}`;
+            }
+            if (rate && rate !== '0') {
+                label += ` | Rate: ${rate}`;
+            }
+            return label;
+        }
+
+        function syncHardwareRow(row) {
+            if (!row.hasClass('hardware-row')) {
+                return;
+            }
+            const qty = parseInt(row.find('.item-quantity').val()) || 0;
+            const key = row.attr('data-item-key');
+            if (key === 'ply') {
+                const size = row.find('.item-size').val() || '';
+                const sqFt = getSqFeet(size, qty);
+                row.find('.item-sqft').text(sqFt === null ? 'NA' : sqFt.toFixed(0));
+            } else {
+                row.find('.item-sqft').text('NA');
+            }
+            row.find('.item-name').val(buildHardwareLabel(row));
+        }
+
         function updateTotals() {
             let total = 0;
             $('#itemsBody tr').each(function() {
-                const price = parseFloat($(this).find('.item-price').val()) || 0;
-                const qty = parseInt($(this).find('.item-quantity').val()) || 0;
-                const amount = price * qty;
-                $(this).find('.item-amount').text('₹' + amount.toFixed(2));
+                const row = $(this);
+                if (row.hasClass('empty-state-row')) {
+                    return;
+                }
+                const price = parseFloat(row.find('.item-price').val()) || 0;
+                const qty = parseInt(row.find('.item-quantity').val()) || 0;
+                let amount = 0;
+
+                if (row.hasClass('hardware-row') && row.attr('data-item-key') === 'ply') {
+                    const size = row.find('.item-size').val() || '';
+                    const sqFt = getSqFeet(size, qty);
+                    row.find('.item-sqft').text(sqFt === null ? 'NA' : sqFt.toFixed(0));
+                    amount = sqFt ? sqFt * price : 0;
+                } else if (row.hasClass('hardware-row')) {
+                    amount = price * qty;
+                    row.find('.item-sqft').text('NA');
+                } else {
+                    amount = price * qty;
+                }
+
+                row.find('.item-amount').text('₹' + amount.toFixed(2));
                 total += amount;
             });
             $('#totalAmount').text('₹' + total.toFixed(2));
@@ -128,23 +325,37 @@
             $('#finalAmount').text('₹' + finalAmount.toFixed(2));
         }
 
+        function buildEmptyStateRow() {
+            return $('<tr class="empty-state-row"><td colspan="9" class="empty-state">Select a category to begin the estimate.</td></tr>');
+        }
+
         function populateCategoryItems(category) {
             $('#itemsBody').empty();
+            $('#hardwareControls').toggleClass('hidden', category !== 'Hardware');
+
             if (category === 'Electric') {
                 electricItems.forEach(itemName => {
                     $('#itemsBody').append(createItemRow(itemName));
                 });
+            } else if (category === 'Hardware') {
+                $('#itemsBody').append(buildEmptyStateRow());
+            } else {
+                $('#itemsBody').append(buildEmptyStateRow());
             }
             updateTotals();
         }
 
         $(document).ready(function() {
-            $('#categorySelect').val('Electric');
+            $('#categorySelect').val('');
             $('#categorySelect').change(function() {
                 populateCategoryItems($(this).val());
             });
 
-            $(document).on('input', '.item-price, .item-quantity, #discount', function() {
+            $(document).on('input change', '.item-price, .item-quantity, .item-mm, .item-size, .item-company, #discount', function() {
+                const row = $(this).closest('tr');
+                if (row.hasClass('hardware-row')) {
+                    syncHardwareRow(row);
+                }
                 updateTotals();
             });
 
@@ -156,9 +367,13 @@
             $('#estimateForm').submit(function(e) {
                 let invalidRow = false;
                 $('#itemsBody tr').each(function() {
-                    const name = $(this).find('[name="itemNames"]').val()?.trim() || '';
-                    const price = parseFloat($(this).find('.item-price').val()) || 0;
-                    const qty = parseInt($(this).find('.item-quantity').val()) || 0;
+                    const row = $(this);
+                    if (row.hasClass('empty-state-row')) {
+                        return;
+                    }
+                    const name = row.find('[name="itemNames"]').val()?.trim() || '';
+                    const price = parseFloat(row.find('.item-price').val()) || 0;
+                    const qty = parseInt(row.find('.item-quantity').val()) || 0;
                     if ((price > 0 || qty > 0) && !name) {
                         invalidRow = true;
                         return false;
@@ -170,13 +385,27 @@
                 }
             });
 
+            $('#addHardwareItemRow').click(function() {
+                const itemKey = $('#hardwareItemSelect').val();
+                if (!itemKey) {
+                    return;
+                }
+                $('#itemsBody').find('.empty-state-row').remove();
+                const newRow = createHardwareItemRow(itemKey);
+                $('#itemsBody').append(newRow);
+                syncHardwareRow(newRow);
+                updateTotals();
+            });
+
             $('#addItemRow').click(function() {
+                $('#itemsBody').find('.empty-state-row').remove();
                 const newRow = createCustomItemRow();
                 $('#itemsBody').append(newRow);
                 newRow.find('.item-name').focus();
+                updateTotals();
             });
 
-            populateCategoryItems('Electric');
+            populateCategoryItems('');
         });
     </script>
 
